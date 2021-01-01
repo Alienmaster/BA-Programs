@@ -10,11 +10,18 @@ red = redis.Redis(host="localhost", port=6379, password="")
 
 @app.handle('MEDIA_BUG_START')
 def media_bug_start(event):
-    print("media_bug_start")
+    print("MEDIA_BUG_START")
     conference = get_conference(records, event)
+    CallerDestinationNumber = event["Caller-Destination-Number"]
+    
+    
+
     OrigCallerIDName = event["Caller-Orig-Caller-ID-Name"]
     Media_Bug_Target = event["Media-Bug-Target"]
     Media_Bug_Function = event["Media-Bug-Function"]
+
+    start_MB = {"Action" : "Media-Bug-Start", "Caller-Destination-Number" : CallerDestinationNumber, "Media-Bug-Target" : Media_Bug_Target}
+    send_to_pubsub(start_MB)
 
     if OrigCallerIDName not in conference.keys():
         conference[OrigCallerIDName] = {}
@@ -27,15 +34,19 @@ def media_bug_start(event):
 
 @app.handle('MEDIA_BUG_STOP')
 def media_bug_stop(event):
-    print("media_bug_stop")
+    print("MEDIA_BUG_STOP")
     conference = get_conference(records, event)
 
     OrigCallerIDName = event["Caller-Orig-Caller-ID-Name"]
     Media_Bug_Function = event["Media-Bug-Function"]
     Media_Bug_Target = event["Media-Bug-Target"]
 
+    CallerDestinationNumber = event["Caller-Destination-Number"]
+    stop_MB = {"Action" : "Media-Bug-Stop", "Caller-Destination-Number" : CallerDestinationNumber, "Media-Bug-Target" : Media_Bug_Target}
+    send_to_pubsub(stop_MB)
 
     if Media_Bug_Function == "session_record":
+        Caller_Username = event["Caller-Username"]
         if Caller_Username in conference.keys():
             conference[Caller_Username]["running"] = 0
     send_to_pubsub(conference)
@@ -45,16 +56,20 @@ def media_bug_stop(event):
 def conference_maintenance(event):
     print("conference_maintenance")
     Action = event["Action"]
-    
-    if Action is ("del-member", "add-member"):
+    if Action in ("del-member", "add-member"):
         conference = get_conference(records, event)
         Caller_Username = event["Caller-Username"]
     
         if Action == "del-member":
-            conference.pop(Caller_Username, None)
+            member = conference.pop(Caller_Username, None)
+            del_member = {"Action" : "del_member", "member" : member}
+            send_to_pubsub(del_member)
+            print(del_member)
+            send_to_pubsub(conference)
+            
         
         if Action == "add-member":
-            conference[Caller_Username]["Caller-Destination-Number"] = Caller_Destination_Number
+            conference[Caller_Username]["Caller-Destination-Number"] = event["Caller-Destination-Number"]
     
         send_to_pubsub(conference)
 
@@ -67,7 +82,7 @@ def get_conference(record_dict, event):
         return RV
 
 def send_to_pubsub(data):
-    data2 = json.dumps(records)
+    data2 = json.dumps(data)
     # print(data2)
     red.publish("test_channel", data2)
 

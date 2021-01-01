@@ -3,9 +3,7 @@ import os
 import redis
 import json
 import argparse
-import greenswitch
 import inspect
-import gevent
 
 def send_file_redis(filename):
     # Open the file
