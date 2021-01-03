@@ -25,13 +25,14 @@ def handle_loader():
                 redis_channel = message["Caller-Orig-Caller-ID-Name"].replace(" ", ".") + "_asr"
                 CallerDestinationNumber = message["Caller-Destination-Number"]
                 OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
+                CallerUsername = message["Caller-Username"]
                 if message["Event"] == "MEDIA_BUG_START":
                     print("Start Bug")
                     p = mp.Process(target=sendFileToRedis, args=(Media_Bug_Target, redis_channel,))
                     p.start()
                     loader[Media_Bug_Target] = p
                     
-                    Loader_Start_msg = {"Event" : "LOADER_START", "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, "ASR-Channel" : redis_channel}
+                    Loader_Start_msg = {"Event" : "LOADER_START", "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, "Caller-Username" : CallerUsername, "ASR-Channel" : redis_channel}
                     red.publish(data_channel, json.dumps(Loader_Start_msg))
 
                 if message["Event"] == "MEDIA_BUG_STOP":
@@ -39,11 +40,12 @@ def handle_loader():
                     p = loader.pop(Media_Bug_Target, None)
                     if p:
                         p.terminate()
-                        Loader_Stop_msg = {"Event" : "LOADER_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, "ASR-Channel" : redis_channel}
+                        Loader_Stop_msg = {"Event" : "LOADER_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName,  "Caller-Username" : CallerUsername, "ASR-Channel" : redis_channel}
                         red.publish(data_channel, json.dumps(Loader_Stop_msg))
+                        os.remove(Media_Bug_Target)
             except:
                 pass
-
+    
 
 def sendFileToRedis(filename, channel):
     # Open the file
