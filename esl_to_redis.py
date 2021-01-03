@@ -14,9 +14,10 @@ def media_bug_start(event):
     OrigCallerIDName = event["Caller-Orig-Caller-ID-Name"]
     Media_Bug_Target = event["Media-Bug-Target"]
     Media_Bug_Function = event["Media-Bug-Function"]
+    CallerUsername = OrigCallerIDName.partition("-bbbID-")[2]
     
     if Media_Bug_Function == "session_record":
-        start_MB = {"Event" : Event, "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, "Media-Bug-Target" : Media_Bug_Target}
+        start_MB = {"Event" : Event, "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, "Caller-Username" : CallerUsername, "Media-Bug-Target" : Media_Bug_Target}
         send_to_pubsub(start_MB)
 
 
@@ -27,9 +28,10 @@ def media_bug_stop(event):
     OrigCallerIDName = event["Caller-Orig-Caller-ID-Name"]
     Media_Bug_Target = event["Media-Bug-Target"]
     Media_Bug_Function = event["Media-Bug-Function"]
+    CallerUsername = OrigCallerIDName.partition("-bbbID-")[2]
     
     if Media_Bug_Function == "session_record":
-        stop_MB = {"Event" : Event, "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, "Media-Bug-Target" : Media_Bug_Target}
+        stop_MB = {"Event" : Event, "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, "Caller-Username" : CallerUsername, "Media-Bug-Target" : Media_Bug_Target}
         send_to_pubsub(stop_MB)
 
 
