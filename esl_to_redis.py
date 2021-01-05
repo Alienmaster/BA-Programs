@@ -9,7 +9,7 @@ red = redis.Redis(host="localhost", port=6379, password="")
 
 @app.handle('MEDIA_BUG_START')
 def media_bug_start(event):
-    CallerDestinationNumber = event["Caller-Destination-Number"]
+    CallerDestinationNumber = event["Caller-Destination-Number"].replace("echo","")
     Event = event["Event-Name"]
     OrigCallerIDName = event["Caller-Orig-Caller-ID-Name"]
     Media_Bug_Target = event["Media-Bug-Target"]
@@ -23,7 +23,7 @@ def media_bug_start(event):
 
 @app.handle('MEDIA_BUG_STOP')
 def media_bug_stop(event):
-    CallerDestinationNumber = event["Caller-Destination-Number"]
+    CallerDestinationNumber = event["Caller-Destination-Number"].replace("echo","")
     Event = event["Event-Name"]
     OrigCallerIDName = event["Caller-Orig-Caller-ID-Name"]
     Media_Bug_Target = event["Media-Bug-Target"]

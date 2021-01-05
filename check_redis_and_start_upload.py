@@ -8,41 +8,54 @@ red = redis.Redis(host="localhost", port=6379, password="")
 
 pubsub = red.pubsub()
 
-data_channel = "test_channel"
+data_channel = ["test_channel", "from-akka-apps-redis-channel"]
 
 pubsub.subscribe(data_channel)
+
+conferences = {}
 
 loader = {}
 
 def handle_loader():
     while True:
         message = pubsub.get_message()
-        if message and message["data"] != 1:
+        if message and message["data"] not in [1, 2]:
             message = json.loads(message["data"].decode("UTF-8"))
-            print(message)
             try:
-                Media_Bug_Target = message["Media-Bug-Target"]
-                redis_channel = message["Caller-Orig-Caller-ID-Name"].replace(" ", ".") + "_asr"
-                CallerDestinationNumber = message["Caller-Destination-Number"]
-                OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
-                CallerUsername = message["Caller-Username"]
-                if message["Event"] == "MEDIA_BUG_START":
-                    print("Start Bug")
-                    p = mp.Process(target=sendFileToRedis, args=(Media_Bug_Target, redis_channel,))
-                    p.start()
-                    loader[Media_Bug_Target] = p
-                    
-                    Loader_Start_msg = {"Event" : "LOADER_START", "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, "Caller-Username" : CallerUsername, "ASR-Channel" : redis_channel}
-                    red.publish(data_channel, json.dumps(Loader_Start_msg))
+                if "Event" in message.keys():
+                    Media_Bug_Target = message["Media-Bug-Target"]
+                    CallerDestinationNumber = message["Caller-Destination-Number"]
+                    OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
+                    CallerUsername = message["Caller-Username"]
+                    meetingId = conferences[CallerDestinationNumber]
+                    redis_channel = meetingId + "%" + CallerUsername.replace(" ", ".") + "%asr"
+                    if message["Event"] == "MEDIA_BUG_START":
+                        
+                        print("Start Bug")
+                        p = mp.Process(target=sendFileToRedis, args=(Media_Bug_Target, redis_channel,))
+                        p.start()
+                        loader[Media_Bug_Target] = p
+                        Loader_Start_msg = {"Event" : "LOADER_START", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, "Caller-Username" : CallerUsername, "ASR-Channel" : redis_channel}
+                        red.publish(data_channel[0], json.dumps(Loader_Start_msg))
 
-                if message["Event"] == "MEDIA_BUG_STOP":
-                    print("Remove Bug")
-                    p = loader.pop(Media_Bug_Target, None)
-                    if p:
-                        p.terminate()
-                        Loader_Stop_msg = {"Event" : "LOADER_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName,  "Caller-Username" : CallerUsername, "ASR-Channel" : redis_channel}
-                        red.publish(data_channel, json.dumps(Loader_Stop_msg))
-                        os.remove(Media_Bug_Target)
+                    if message["Event"] == "MEDIA_BUG_STOP":
+                        print("Remove Bug")
+                        p = loader.pop(Media_Bug_Target, None)
+                        if p:
+                            p.terminate()
+                            Loader_Stop_msg = {"Event" : "LOADER_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName,  "Caller-Username" : CallerUsername, "ASR-Channel" : redis_channel}
+                            red.publish(data_channel[0], json.dumps(Loader_Stop_msg))
+                            os.remove(Media_Bug_Target)
+
+                if "envelope" in message.keys():
+                    
+                    if message["envelope"]["name"] == "VoiceCallStateEvtMsg":
+                        message = message["core"]["body"]
+                        voiceConf = message["voiceConf"]
+                        meetingId = message["meetingId"]
+                        conferences[voiceConf] = meetingId
+                        # print(message["voiceConf"])
+                        # print(message["meetingId"])
             except:
                 pass
     

@@ -29,13 +29,14 @@ def wait_for_channel():
                 CallerDestinationNumber = message["Caller-Destination-Number"]
                 OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
                 CallerUsername = message["Caller-Username"]
+                meetingId = message["meetingId"]
                 if message["Event"] == "LOADER_START":
                     print("Start Kaldi")
                     p = mp.Process(target=start_kaldi, args=(input_channel, output_channel,))
                     p.start()
                     kaldi_instances[input_channel] = p
                     
-                    Loader_Start_msg = {"Event" : "KALDI_START", "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
+                    Loader_Start_msg = {"Event" : "KALDI_START", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
                     red.publish(data_channel, json.dumps(Loader_Start_msg))
                 
                 if message["Event"] == "LOADER_STOP":
@@ -44,7 +45,7 @@ def wait_for_channel():
                     p = kaldi_instances.pop(input_channel, None)
                     if p:
                         p.terminate()
-                        Loader_Stop_msg = {"Event" : "KALDI_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
+                        Loader_Stop_msg = {"Event" : "KALDI_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
                         red.publish(data_channel, json.dumps(Loader_Stop_msg))
             except:
                 pass
