@@ -22,7 +22,6 @@ def wait_for_channel():
         message = pubsub.get_message()
         if message and message["data"] != 1:
             message = json.loads(message["data"].decode("UTF-8"))
-            print(message)
             try:
                 input_channel = message["ASR-Channel"]
                 output_channel = message["Caller-Orig-Caller-ID-Name"].replace(" ", ".") + "_data"
@@ -43,6 +42,7 @@ def wait_for_channel():
                     input_channel = message["ASR-Channel"]
                     print("Stop Kaldi")
                     p = kaldi_instances.pop(input_channel, None)
+                    print(p)
                     if p:
                         p.terminate()
                         Loader_Stop_msg = {"Event" : "KALDI_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
