@@ -42,9 +42,9 @@ def wait_for_channel():
                     input_channel = message["ASR-Channel"]
                     print("Stop Kaldi")
                     p = kaldi_instances.pop(input_channel, None)
-                    print(p)
                     if p:
-                        p.terminate()
+                        p.terminate() #TODO: Problems with orphaned processes. Evntually call Kaldi as a module and not with the system
+                        p.join()
                         Loader_Stop_msg = {"Event" : "KALDI_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
                         red.publish(data_channel, json.dumps(Loader_Stop_msg))
             except:
