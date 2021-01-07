@@ -9,9 +9,9 @@ data_channel = "test_channel"
 
 kaldi_instances = {}
 
-def start_kaldi(input, output):
+def start_kaldi(input, output, speaker):
     os.chdir("/home/bbb/ba/kaldi_modelserver_bbb")
-    os.system("pykaldi_bbb_env/bin/python3.7 nnet3_model.py -m 0 -e -t -y models/kaldi_tuda_de_nnet3_chain2.yaml --redis-audio=%s --redis-channel=%s -fpc 190" %  (input, output))
+    os.system("pykaldi_bbb_env/bin/python3.7 nnet3_model.py -m 0 -e -t -y models/kaldi_tuda_de_nnet3_chain2.yaml --redis-audio=%s --redis-channel=%s -s=%s -fpc 190" %  (input, output, speaker))
 
 
 def wait_for_channel():
@@ -31,7 +31,7 @@ def wait_for_channel():
                 meetingId = message["meetingId"]
                 if message["Event"] == "LOADER_START":
                     print("Start Kaldi")
-                    p = mp.Process(target=start_kaldi, args=(input_channel, output_channel,))
+                    p = mp.Process(target=start_kaldi, args=(input_channel, output_channel, CallerUsername))
                     p.start()
                     kaldi_instances[input_channel] = p
                     
