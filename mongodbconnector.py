@@ -2,6 +2,7 @@ import pymongo
 import time
 import redis
 import json
+from multiprocessing import Manager
 
 myclient = pymongo.MongoClient("mongodb://127.0.1.1:27017")
 
@@ -9,9 +10,12 @@ red = redis.Redis(host="localhost", port=6379, password="")
 
 mydb = myclient["meteor"]["captions"]
 
+manager = Manager()
+u = manager.list()
+meeting = manager.dict()
 
 print(mydb)
-myquery = {"$and": [{"meetingId" : "d379fb14d262b7cd51d768079ad59cf08db23287-1609942180842"}, {"length" : 0}, {"locale.locale" : "en"}]}
+myquery = {"$and": [{"meetingId" : "d379fb14d262b7cd51d768079ad59cf08db23287-1609944939692"}, {"length" : 0}, {"locale.locale" : "en"}]}
 
 for i in mydb.find(myquery):
     print(i)
@@ -21,20 +25,32 @@ def handler(message):
     print(message["Event"])
     if message["Event"] == "KALDI_START":
         ASR = message["ASR-Channel"]
+        InputChannel = message["Input-Channel"]
+        CallerUsername = message["Caller-Username"]
         pubsub.subscribe(**{ASR : kaldi_text})
         thread2 = pubsub.run_in_thread(sleep_time=0.001)
+        print(CallerUsername)
+        print(meeting)
+            
+        
 
 def kaldi_text(message):
     message = json.loads(message["data"].decode("UTF-8"))
-    print(message)
-    if message["handle"] == "completeUtterance":
-        print(message["utterance"])
-
-
+    if message["handle"] == "partialUtterance":
+        u.append(message["utterance"])
+        # print(u)
 
 pubsub = red.pubsub()
 pubsub.subscribe(**{"test_channel": handler})
 thread = pubsub.run_in_thread(sleep_time=0.001)
+
+while True:
+    time.sleep(1)
+    ASR = u.pop(0) if u else None
+    if ASR:
+        print(ASR)
+    print(meeting)
+
 
 
 # old_value = mydb.find_one({"_id": "mx9P7sZRPSgAjjzBS"})
