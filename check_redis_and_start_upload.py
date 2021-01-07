@@ -3,11 +3,13 @@ import json
 import os
 import multiprocessing as mp
 import time
+import logging
+
+logger = logging.getLogger("File-to-Redis")
+logger.setLevel(logging.DEBUG)
 
 red = redis.Redis(host="localhost", port=6379, password="")
-
 pubsub = red.pubsub()
-
 data_channel = ["test_channel", "from-akka-apps-redis-channel"]
 
 pubsub.subscribe(data_channel)
@@ -30,8 +32,8 @@ def handle_loader():
                     meetingId = conferences[CallerDestinationNumber]
                     redis_channel = meetingId + "%" + CallerUsername.replace(" ", ".") + "%asr"
                     if message["Event"] == "MEDIA_BUG_START":
-                        
-                        print("Start Bug")
+                        logger.info("Media Bug Start")
+                        logger.debug(message)
                         p = mp.Process(target=sendFileToRedis, args=(Media_Bug_Target, redis_channel,))
                         p.start()
                         loader[Media_Bug_Target] = p
@@ -39,7 +41,8 @@ def handle_loader():
                         red.publish(data_channel[0], json.dumps(Loader_Start_msg))
 
                     if message["Event"] == "MEDIA_BUG_STOP":
-                        print("Remove Bug")
+                        logger.debug("Media Bug Stop")
+                        logger.info(message)
                         p = loader.pop(Media_Bug_Target, None)
                         if p:
                             p.terminate()
@@ -50,6 +53,8 @@ def handle_loader():
                 if "envelope" in message.keys():
                     
                     if message["envelope"]["name"] == "VoiceCallStateEvtMsg":
+                        logger.info("VoiceCallStateEvtMsg")
+                        logger.debug(message)
                         message = message["core"]["body"]
                         voiceConf = message["voiceConf"]
                         meetingId = message["meetingId"]
@@ -63,7 +68,7 @@ def handle_loader():
 def sendFileToRedis(filename, channel):
     # Open the file
     file = open(filename,'rb', buffering=2048)
-
+    logger.debug("Opened File: " + filename)
     # Find the actual size of the file and move to the end
     st_results = os.stat(filename)
     st_size = st_results[6]
