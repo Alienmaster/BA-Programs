@@ -5,8 +5,12 @@ import multiprocessing as mp
 import time
 import logging
 
-logger = logging.getLogger("File-to-Redis")
-logger.setLevel(logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
+logger = logging.getLogger(__name__)
 
 red = redis.Redis(host="localhost", port=6379, password="")
 pubsub = red.pubsub()

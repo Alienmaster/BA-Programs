@@ -2,9 +2,18 @@ import pymongo
 import time
 import redis
 import json
+import logging
+
 from multiprocessing import Manager
 
 myclient = pymongo.MongoClient("mongodb://127.0.1.1:27017")
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
+logger = logging.getLogger(__name__)
 
 ### REDIS ###
 red = redis.Redis(host="localhost", port=6379, password="")
@@ -34,12 +43,12 @@ def the_loop():
                 try:
                     if "Event" in message.keys():
                         if message["Event"] == "KALDI_START":
-                            print("Kaldi is started. Lets get ASR!")
+                            logger.info("Kaldi is started. Lets get ASR!")
                             ASR = message["ASR-Channel"]
                             meetingId = message["meetingId"]
                             OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
                             meetings = dict_handler(meetings, meetingId, ASR, OrigCallerIDName)
-                            print(meetings)
+                            logger.debug(meetings)
                             pubsub.subscribe(ASR)
                             # Loader_Start_msg = {"Event" : "KALDI_START", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
                         

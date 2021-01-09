@@ -23,12 +23,12 @@ def wait_for_channel():
         if message and message["data"] != 1:
             message = json.loads(message["data"].decode("UTF-8"))
             try:
-                input_channel = message["ASR-Channel"]
+                meetingId = message["meetingId"]
+                CallerUsername = message["Caller-Username"]
+                input_channel = meetingId + "%" + CallerUsername.replace(" ", ".") + "%text"
                 output_channel = message["Caller-Orig-Caller-ID-Name"].replace(" ", ".") + "_data"
                 CallerDestinationNumber = message["Caller-Destination-Number"]
                 OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
-                CallerUsername = message["Caller-Username"]
-                meetingId = message["meetingId"]
                 if message["Event"] == "LOADER_START":
                     print("Start Kaldi")
                     p = mp.Process(target=start_kaldi, args=(input_channel, output_channel, CallerUsername))
