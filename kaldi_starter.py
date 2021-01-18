@@ -2,6 +2,7 @@ import os
 import redis
 import json
 import multiprocessing as mp
+import time
 
 red = redis.Redis(host="ltbbb2", port=6379, password="")
 
@@ -11,7 +12,7 @@ kaldi_instances = {}
 
 def start_kaldi(input, output, speaker):
     os.chdir("/home/bbb/ba/kaldi_modelserver_bbb")
-    os.system("pykaldi_bbb_env/bin/python3.7 nnet3_model.py -m 0 -e -t -y models/kaldi_tuda_de_nnet3_chain2.yaml --redis-audio=%s --redis-channel=%s -s=%s -fpc 190" %  (input, output, speaker))
+    os.system("pykaldi_bbb_env/bin/python3.7 nnet3_model.py -m 0 -e -t -y models/kaldi_tuda_de_nnet3_chain2.yaml --redis-audio=%s --redis-channel=%s -s='%s' -fpc 190" %  (input, output, speaker))
 
 
 def wait_for_channel():
@@ -19,14 +20,15 @@ def wait_for_channel():
     pubsub.subscribe(data_channel)
 
     while True:
+        time.sleep(0.2)
         message = pubsub.get_message()
         if message and message["data"] != 1:
             message = json.loads(message["data"].decode("UTF-8"))
             try:
                 meetingId = message["meetingId"]
                 CallerUsername = message["Caller-Username"]
-                input_channel = meetingId + "%" + CallerUsername.replace(" ", ".") + "%text"
-                output_channel = message["Caller-Orig-Caller-ID-Name"].replace(" ", ".") + "_data"
+                input_channel = meetingId + "%" + CallerUsername.replace(" ", ".") + "%asr"
+                output_channel = meetingId + "%" + CallerUsername.replace(" ", ".") +"%data"
                 CallerDestinationNumber = message["Caller-Destination-Number"]
                 OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
                 if message["Event"] == "LOADER_START":
