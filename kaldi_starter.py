@@ -35,7 +35,15 @@ def wait_for_channel(server, channel):
                     p.start()
                     kaldiInstances[inputChannel] = p
 
-                    Loader_Start_msg = {"Event": "KALDI_START", "Caller-Destination-Number": callerDestinationNumber, "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": origCallerIDName, 'Caller-Username': callerUsername, "Input-Channel": inputChannel, "ASR-Channel": outputChannel}
+                    Loader_Start_msg = {
+                                        "Event": "KALDI_START",
+                                        "Caller-Destination-Number": callerDestinationNumber,
+                                        "meetingId": meetingId,
+                                        "Caller-Orig-Caller-ID-Name": origCallerIDName,
+                                        "Caller-Username": callerUsername,
+                                        "Input-Channel": inputChannel,
+                                        "ASR-Channel": outputChannel
+                                        }
                     red.publish(channel, json.dumps(Loader_Start_msg))
 
                 if message["Event"] == "LOADER_STOP":
@@ -45,7 +53,15 @@ def wait_for_channel(server, channel):
                     if p:
                         p.terminate()  # TODO: Problems with orphaned processes. Eventually call Kaldi as a module and not with the system
                         p.join()
-                        Loader_Stop_msg = {"Event": "KALDI_STOP", "Caller-Destination-Number": callerDestinationNumber, "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": origCallerIDName, 'Caller-Username': callerUsername, "Input-Channel": inputChannel, "ASR-Channel": outputChannel}
+                        Loader_Stop_msg = {
+                                           "Event": "KALDI_STOP",
+                                           "Caller-Destination-Number": callerDestinationNumber,
+                                           "meetingId": meetingId,
+                                           "Caller-Orig-Caller-ID-Name": origCallerIDName,
+                                           'Caller-Username': callerUsername,
+                                           "Input-Channel": inputChannel,
+                                           "ASR-Channel": outputChannel
+                                           }
                         red.publish(channel, json.dumps(Loader_Stop_msg))
             except:
                 pass

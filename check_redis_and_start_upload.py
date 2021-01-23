@@ -22,6 +22,7 @@ conferences = {}
 
 loader = {}
 
+
 def handle_loader():
     while True:
         message = pubsub.get_message()
@@ -29,33 +30,43 @@ def handle_loader():
             message = json.loads(message["data"].decode("UTF-8"))
             try:
                 if "Event" in message.keys():
-                    Media_Bug_Target = message["Media-Bug-Target"]
-                    CallerDestinationNumber = message["Caller-Destination-Number"]
-                    OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
-                    CallerUsername = message["Caller-Username"]
-                    meetingId = conferences[CallerDestinationNumber]
-                    redis_channel = meetingId + "%" + CallerUsername.replace(" ", ".") + "%asr"
+                    mediaBugTarget = message["Media-Bug-Target"]
+                    callerDestinationNumber = message["Caller-Destination-Number"]
+                    origCallerIDName = message["Caller-Orig-Caller-ID-Name"]
+                    callerUsername = message["Caller-Username"]
+                    meetingId = conferences[callerDestinationNumber]
+                    redisChannel = meetingId + "%" + callerUsername.replace(" ", ".") + "%asr"
                     if message["Event"] == "MEDIA_BUG_START":
                         logger.info("Media Bug Start")
                         logger.debug(message)
-                        p = mp.Process(target=sendFileToRedis, args=(Media_Bug_Target, redis_channel,))
+                        p = mp.Process(target=send_file_to_redis, args=(mediaBugTarget, redisChannel,))
                         p.start()
-                        loader[Media_Bug_Target] = p
-                        Loader_Start_msg = {"Event" : "LOADER_START", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, "Caller-Username" : CallerUsername, "ASR-Channel" : redis_channel}
-                        red.publish(data_channel[0], json.dumps(Loader_Start_msg))
+                        loader[mediaBugTarget] = p
+                        loaderStartMsg = {
+                                          "Event": "LOADER_START",
+                                          "Caller-Destination-Number": callerDestinationNumber,
+                                          "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": origCallerIDName,
+                                          "Caller-Username": callerUsername, "ASR-Channel": redisChannel
+                                          }
+                        red.publish(data_channel[0], json.dumps(loaderStartMsg))
 
                     if message["Event"] == "MEDIA_BUG_STOP":
                         logger.debug("Media Bug Stop")
                         logger.info(message)
-                        p = loader.pop(Media_Bug_Target, None)
+                        p = loader.pop(mediaBugTarget, None)
                         if p:
                             p.terminate()
-                            Loader_Stop_msg = {"Event" : "LOADER_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName,  "Caller-Username" : CallerUsername, "ASR-Channel" : redis_channel}
-                            red.publish(data_channel[0], json.dumps(Loader_Stop_msg))
-                            os.remove(Media_Bug_Target)
+                            loaderStopMsg = {
+                                        "Event": "LOADER_STOP",
+                                        "Caller-Destination-Number": callerDestinationNumber,
+                                        "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": origCallerIDName,
+                                        "Caller-Username": callerUsername,
+                                        "ASR-Channel": redisChannel
+                                        }
+                            red.publish(data_channel[0], json.dumps(loaderStopMsg))
+                            os.remove(mediaBugTarget)
 
                 if "envelope" in message.keys():
-                    
                     if message["envelope"]["name"] == "VoiceCallStateEvtMsg":
                         logger.info("VoiceCallStateEvtMsg")
                         logger.debug(message)
@@ -63,15 +74,14 @@ def handle_loader():
                         voiceConf = message["voiceConf"]
                         meetingId = message["meetingId"]
                         conferences[voiceConf] = meetingId
-                        # print(message["voiceConf"])
-                        # print(message["meetingId"])
+
             except:
                 pass
-    
 
-def sendFileToRedis(filename, channel):
+
+def send_file_to_redis(filename, channel):
     # Open the file
-    file = open(filename,'rb', buffering=2048)
+    file = open(filename, 'rb', buffering=2048)
     logger.debug("Opened File: " + filename)
     # Find the actual size of the file and move to the end
     st_results = os.stat(filename)
