@@ -3,21 +3,19 @@ import redis
 import json
 import multiprocessing as mp
 import time
+import argparse
 
-red = redis.Redis(host="ltbbb2", port=6379, password="")
-
-data_channel = "test_channel"
-
-kaldi_instances = {}
 
 def start_kaldi(input, output, speaker):
     os.chdir("/home/bbb/ba/kaldi_modelserver_bbb")
-    os.system("pykaldi_bbb_env/bin/python3.7 nnet3_model.py -m 0 -e -t -y models/kaldi_tuda_de_nnet3_chain2.yaml --redis-audio=%s --redis-channel=%s -s='%s' -fpc 190" %  (input, output, speaker))
+    os.system("pykaldi_bbb_env/bin/python3.7 nnet3_model.py -m 0 -e -t -y models/kaldi_tuda_de_nnet3_chain2.yaml --redis-audio=%s --redis-channel=%s -s='%s' -fpc 190" % (input, output, speaker))
 
 
-def wait_for_channel():
+def wait_for_channel(server, channel):
+    kaldi_instances = {}
+    red = redis.Redis(host=server, port=6379, password="")
     pubsub = red.pubsub()
-    pubsub.subscribe(data_channel)
+    pubsub.subscribe(channel)
 
     while True:
         time.sleep(0.2)
@@ -28,7 +26,7 @@ def wait_for_channel():
                 meetingId = message["meetingId"]
                 CallerUsername = message["Caller-Username"]
                 input_channel = meetingId + "%" + CallerUsername.replace(" ", ".") + "%asr"
-                output_channel = meetingId + "%" + CallerUsername.replace(" ", ".") +"%data"
+                output_channel = meetingId + "%" + CallerUsername.replace(" ", ".") + "%data"
                 CallerDestinationNumber = message["Caller-Destination-Number"]
                 OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
                 if message["Event"] == "LOADER_START":
@@ -36,23 +34,32 @@ def wait_for_channel():
                     p = mp.Process(target=start_kaldi, args=(input_channel, output_channel, CallerUsername))
                     p.start()
                     kaldi_instances[input_channel] = p
-                    
-                    Loader_Start_msg = {"Event" : "KALDI_START", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
-                    red.publish(data_channel, json.dumps(Loader_Start_msg))
-                
+
+                    Loader_Start_msg = {"Event": "KALDI_START", "Caller-Destination-Number": CallerDestinationNumber, "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel": input_channel, "ASR-Channel": output_channel}
+                    red.publish(channel, json.dumps(Loader_Start_msg))
+
                 if message["Event"] == "LOADER_STOP":
                     input_channel = message["ASR-Channel"]
                     print("Stop Kaldi")
                     p = kaldi_instances.pop(input_channel, None)
                     if p:
-                        p.terminate() #TODO: Problems with orphaned processes. Evntually call Kaldi as a module and not with the system
+                        p.terminate()  # TODO: Problems with orphaned processes. Eventually call Kaldi as a module and not with the system
                         p.join()
-                        Loader_Stop_msg = {"Event" : "KALDI_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
-                        red.publish(data_channel, json.dumps(Loader_Stop_msg))
+                        Loader_Stop_msg = {"Event": "KALDI_STOP", "Caller-Destination-Number": CallerDestinationNumber, "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel": input_channel, "ASR-Channel": output_channel}
+                        red.publish(channel, json.dumps(Loader_Stop_msg))
             except:
                 pass
 
 
-
 if __name__ == "__main__":
-    wait_for_channel()
+    # Argument parser
+    parser = argparse.ArgumentParser()
+
+    # flag (- and --) arguments
+    parser.add_argument("-s", "--server", help="REDIS Pubsub Server hostname or IP")
+    parser.add_argument("-c", "--channel", help="The Pubsub Information Channel")
+    args = parser.parse_args()
+    server = args.server
+    channel = args.channel
+
+    wait_for_channel(server)
