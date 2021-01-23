@@ -28,48 +28,71 @@ mydb = myclient["meteor"]["captions"]
 
 
 print(mydb)
-myquery = {"$and": [{"meetingId" : "d379fb14d262b7cd51d768079ad59cf08db23287-1609944939692"}, {"length" : 0}, {"locale.locale" : "en"}]}
-
-for i in mydb.find(myquery):
-    print(i)
 
 def the_loop():
     meetings = {}
     while True:
-            fullmessage = pubsub.get_message()
-            if fullmessage and not isinstance(fullmessage["data"], int):
-                message = json.loads(fullmessage["data"].decode("UTF-8"))
-                # print(message)
-                try:
-                    if "Event" in message.keys():
-                        if message["Event"] == "KALDI_START":
-                            logger.info("Kaldi is started. Lets get ASR!")
-                            ASR = message["ASR-Channel"]
-                            meetingId = message["meetingId"]
-                            OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
-                            meetings = dict_handler(meetings, meetingId, ASR, OrigCallerIDName)
-                            logger.debug(meetings)
-                            pubsub.subscribe(ASR)
-                            # Loader_Start_msg = {"Event" : "KALDI_START", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
-                        
-                    if message["handle"] == "partialUtterance":
-                        print(fullmessage)
-                        print(message)
-                        print(message["utterance"])
-                        # meetings[]
-                        # Loader_Stop_msg = {"Event" : "KALDI_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
-                except:
-                    pass
+        fullmessage = pubsub.get_message()
+        if fullmessage and not isinstance(fullmessage["data"], int):
+            message = json.loads(fullmessage["data"].decode("UTF-8"))
+            # print(message)
+            if "Event" in message.keys():
+                if message["Event"] == "KALDI_START":
+                    logger.info("Kaldi is started. Lets get ASR!")
+                    ASR = message["ASR-Channel"]
+                    # print(ASR)
+                    meetingId = message["meetingId"]
+                    OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
+                    meetings = dict_handler(meetings, meetingId, ASR, OrigCallerIDName)
+                    logger.debug(meetings)
+                    pubsub.subscribe(ASR)
+                    # Loader_Start_msg = {"Event" : "KALDI_START", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
+            if "handle" in message.keys():
+                if message["handle"] == "completeUtterance":
+                    # print(fullmessage)
+                    # print(message)
+                    channel = fullmessage["channel"].decode("utf-8")
+                    meetingId = channel.split("%")[0]
+                    speaker = message["speaker"]
+                    print(speaker)
+                    utterance = message["utterance"]
+                    # Loader_Stop_msg = {"Event" : "KALDI_STOP", "Caller-Destination-Number" : CallerDestinationNumber, "meetingId" : meetingId, "Caller-Orig-Caller-ID-Name" : OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel" : input_channel, "ASR-Channel" : output_channel}
+                    id = get_meeting_pad(meetingId)
+                    print(id)
+                    send_utterance(id, utterance, speaker)
+    
 
 def dict_handler(d, meetingId, ASR, participant):
     if ASR not in d.keys():
-        d[ASR] = {}
-        d[ASR]["meetingId"] = meetingId
-        d[ASR]["participants"] = {}
-    d[ASR]["participants"][participant] = ""
+        d[meetingId] = {}
+        d[meetingId]["participants"] = {}
+    d[meetingId]["participants"][participant] = ""
+    d[meetingId]["participants"]["ASR-Channel"] = ASR # Wrong
     return d
 
+def get_meeting_pad(meetingId):
+    myquery = {"$and": [{"meetingId" : meetingId}, {"locale.locale" : "en"}]}
+    v = mydb.find_one(myquery)
+    print(v)
+    return v["_id"]
+    # for i in mydb.find(myquery):
+    #     print(i)
 
+def send_utterance(Id, utterance, speaker):
+    myquery = {"$and": [{"_id" : Id}, {"locale.locale" : "en"}]}
+    v = mydb.find_one(myquery)
+    revs = v["revs"]
+    length = v["length"]
+    subtitle = speaker + ": " + utterance + "\n"
+    mydb.update({
+        '_id': Id
+    },{
+        '$set': {
+            'data': subtitle,
+            'revs': revs + 1,
+            'length': length + 1
+        }
+    }, upsert=False)
 
 if __name__ == "__main__":
     the_loop()
