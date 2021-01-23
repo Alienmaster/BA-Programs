@@ -12,7 +12,7 @@ def start_kaldi(input, output, speaker):
 
 
 def wait_for_channel(server, channel):
-    kaldi_instances = {}
+    kaldiInstances = {}
     red = redis.Redis(host=server, port=6379, password="")
     pubsub = red.pubsub()
     pubsub.subscribe(channel)
@@ -24,28 +24,28 @@ def wait_for_channel(server, channel):
             message = json.loads(message["data"].decode("UTF-8"))
             try:
                 meetingId = message["meetingId"]
-                CallerUsername = message["Caller-Username"]
-                input_channel = meetingId + "%" + CallerUsername.replace(" ", ".") + "%asr"
-                output_channel = meetingId + "%" + CallerUsername.replace(" ", ".") + "%data"
-                CallerDestinationNumber = message["Caller-Destination-Number"]
-                OrigCallerIDName = message["Caller-Orig-Caller-ID-Name"]
+                callerUsername = message["Caller-Username"]
+                inputChannel = meetingId + "%" + callerUsername.replace(" ", ".") + "%asr"
+                outputChannel = meetingId + "%" + callerUsername.replace(" ", ".") + "%data"
+                callerDestinationNumber = message["Caller-Destination-Number"]
+                origCallerIDName = message["Caller-Orig-Caller-ID-Name"]
                 if message["Event"] == "LOADER_START":
                     print("Start Kaldi")
-                    p = mp.Process(target=start_kaldi, args=(input_channel, output_channel, CallerUsername))
+                    p = mp.Process(target=start_kaldi, args=(inputChannel, outputChannel, callerUsername))
                     p.start()
-                    kaldi_instances[input_channel] = p
+                    kaldiInstances[inputChannel] = p
 
-                    Loader_Start_msg = {"Event": "KALDI_START", "Caller-Destination-Number": CallerDestinationNumber, "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel": input_channel, "ASR-Channel": output_channel}
+                    Loader_Start_msg = {"Event": "KALDI_START", "Caller-Destination-Number": callerDestinationNumber, "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": origCallerIDName, 'Caller-Username': callerUsername, "Input-Channel": inputChannel, "ASR-Channel": outputChannel}
                     red.publish(channel, json.dumps(Loader_Start_msg))
 
                 if message["Event"] == "LOADER_STOP":
-                    input_channel = message["ASR-Channel"]
+                    inputChannel = message["ASR-Channel"]
                     print("Stop Kaldi")
-                    p = kaldi_instances.pop(input_channel, None)
+                    p = kaldiInstances.pop(inputChannel, None)
                     if p:
                         p.terminate()  # TODO: Problems with orphaned processes. Eventually call Kaldi as a module and not with the system
                         p.join()
-                        Loader_Stop_msg = {"Event": "KALDI_STOP", "Caller-Destination-Number": CallerDestinationNumber, "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": OrigCallerIDName, 'Caller-Username': CallerUsername, "Input-Channel": input_channel, "ASR-Channel": output_channel}
+                        Loader_Stop_msg = {"Event": "KALDI_STOP", "Caller-Destination-Number": callerDestinationNumber, "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": origCallerIDName, 'Caller-Username': callerUsername, "Input-Channel": inputChannel, "ASR-Channel": outputChannel}
                         red.publish(channel, json.dumps(Loader_Stop_msg))
             except:
                 pass
