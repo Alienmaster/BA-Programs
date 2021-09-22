@@ -3,7 +3,7 @@ This project will not be updated.
 If you want to use an actual subtitling system for BBB click [here](https://github.com/uhh-lt/bbb-live-subtitles).
 
 # Live Subtitling for BBB
-This project is a plugin for automatic subtitling in BigBlueButton (BBB), an open source web conferencing system. bbb-live-subtitles will run real time automatic speech recognition (ASR) and will generate subtitle captions on-the-fly. No cloud services are used for ASR, instead we use our own speech recognition models that can be run locally. This ensures that no privacy issues arise. There are a german and english model already build and ready to use (english runs only with pykaldi > 0.2.0 and Python 3.8)
+This project is a plugin for automatic subtitling in BigBlueButton (BBB), an open source web conferencing system. BA-Programs will run real time automatic speech recognition (ASR) and will generate subtitle captions on-the-fly. No cloud services are used for ASR, instead we use our own speech recognition models that can be run locally. This ensures that no privacy issues arise. There are a german and english model already build and ready to use (english runs only with pykaldi > 0.2.0 and Python 3.8)
 
 # Subtitling of BBB Participants
 Currently, each BBB participant is subtitled individually. We use Kaldi/pyKaldi for automatic speech recognition (ASR). Any nnet3 compatible Kaldi model can be used. We offer free and ready to use models for [German ASR](https://github.com/uhh-lt/kaldi-tuda-de/) and an English model is available as well.
@@ -12,12 +12,12 @@ Also the subtitles are written into the Shared Notes and can be exported as PDF 
 # Installation and prerequisites:
 Tested with BigBlueButton 2.2.x, Ubuntu 20.04, Python 3.8 and [kaldi-model-server](https://github.com/uhh-lt/kaldi-model-server)
 
-## Install and configure BBB-live-subtitles
+## Install and configure BA-Programs
 ```Shell
 # Make sure you have Python 3.8 installed, its dev package and other dependencies: (Python 3.7 could work also. There is a PyKaldi wheel for 3.7 also)
 sudo apt-get install python3.8 python3.8-dev portaudio19-dev
 
-# Now clone the bbb-live-subtitles package somewhere:
+# Now clone the BA-Programs package somewhere:
 mkdir ~/projects
 cd ~/projects
 git clone https://github.com/Alienmaster/BA-Programs
@@ -40,10 +40,10 @@ pip install pykaldi-0.2.1-cp38-cp38-linux_x86_64.whl
 
 # Install Kaldi and Intel MKL (see note below if you have a different CPU than Intel)
 ./install_mkl.sh
-./install_kaldi_intel.sh ~/projects/bbb-live-subtitles/bbbsub_env/bin/python3.8
+./install_kaldi_intel.sh ~/projects/BA-Programs/bbbsub_env/bin/python3.8
 
 # OR if you have a non-Intel CPU:
-./install_kaldi.sh ~/projects/bbb-live-subtitles/bbbsub_env/bin/python3.8
+./install_kaldi.sh ~/projects/BA-Programs/bbbsub_env/bin/python3.8
 
 # Download the english and german Model
 ./download_example_models.sh
