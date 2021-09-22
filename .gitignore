@@ -1,5 +1,2 @@
-/.vscode
-ba_env/
-env/
-env_39/
-__pycache__/
+.vscode
+bbb_env/

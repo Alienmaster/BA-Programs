@@ -45,26 +45,34 @@ def handle_loader():
                         loaderStartMsg = {
                                           "Event": "LOADER_START",
                                           "Caller-Destination-Number": callerDestinationNumber,
-                                          "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": origCallerIDName,
-                                          "Caller-Username": callerUsername, "ASR-Channel": redisChannel
+                                          "meetingId": meetingId,
+                                          "Caller-Orig-Caller-ID-Name": origCallerIDName,
+                                          "Caller-Username": callerUsername,
+                                          "ASR-Channel": redisChannel
                                           }
                         red.publish(data_channel[0], json.dumps(loaderStartMsg))
 
                     if message["Event"] == "MEDIA_BUG_STOP":
-                        logger.debug("Media Bug Stop")
-                        logger.info(message)
+                        logger.info("Media Bug Stop")
+                        logger.debug(message)
                         p = loader.pop(mediaBugTarget, None)
                         if p:
                             p.terminate()
                             loaderStopMsg = {
                                         "Event": "LOADER_STOP",
                                         "Caller-Destination-Number": callerDestinationNumber,
-                                        "meetingId": meetingId, "Caller-Orig-Caller-ID-Name": origCallerIDName,
+                                        "meetingId": meetingId,
+                                        "Caller-Orig-Caller-ID-Name": origCallerIDName,
                                         "Caller-Username": callerUsername,
                                         "ASR-Channel": redisChannel
                                         }
                             red.publish(data_channel[0], json.dumps(loaderStopMsg))
                             os.remove(mediaBugTarget)
+                            # KMS needs two more data chunks to end definitely
+                            time.sleep(0.5)
+                            red.publish(redisChannel, 8*"\x00")
+                            time.sleep(0.5)
+                            red.publish(redisChannel, 8*"\x00")
 
                 if "envelope" in message.keys():
                     if message["envelope"]["name"] == "VoiceCallStateEvtMsg":
@@ -79,9 +87,9 @@ def handle_loader():
                 pass
 
 
-def send_file_to_redis(filename, channel):
+def send_file_to_redis(filename, channel, chunksize=2048*2):
     # Open the file
-    file = open(filename, 'rb', buffering=2048)
+    file = open(filename, 'rb', buffering=chunksize)
     logger.debug("Opened File: " + filename)
     # Find the actual size of the file and move to the end
     st_results = os.stat(filename)
@@ -89,13 +97,14 @@ def send_file_to_redis(filename, channel):
     file.seek(st_size)
 
     while True:
-        where = file.tell()
-        line = file.read()
-        if not line:
-            time.sleep(0.1)
-            file.seek(where)
-        else:
+        last_read_pos = file.tell()
+        line = file.read(chunksize)
+        if line:
+            logger.debug("Read chunk of:" + str(len(line)) + "bytes.")
             red.publish(channel, line)
+        else:
+            time.sleep(0.1281)
+            file.seek(last_read_pos)
 
 
 if __name__ == "__main__":
