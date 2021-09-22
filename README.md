@@ -1,4 +1,8 @@
-# bbb-live-subtitles
+# Warning
+This project will not be updated.
+If you want to use an actual subtitling system for BBB click [here](https://github.com/uhh-lt/bbb-live-subtitles).
+
+# Live Subtitling for BBB
 This project is a plugin for automatic subtitling in BigBlueButton (BBB), an open source web conferencing system. bbb-live-subtitles will run real time automatic speech recognition (ASR) and will generate subtitle captions on-the-fly. No cloud services are used for ASR, instead we use our own speech recognition models that can be run locally. This ensures that no privacy issues arise. There are a german and english model already build and ready to use (english runs only with pykaldi > 0.2.0 and Python 3.8)
 
 # Subtitling of BBB Participants
@@ -16,8 +20,8 @@ sudo apt-get install python3.8 python3.8-dev portaudio19-dev
 # Now clone the bbb-live-subtitles package somewhere:
 mkdir ~/projects
 cd ~/projects
-git clone https://github.com/uhh-lt/bbb-live-subtitles
-cd bbb-live-subtitles/
+git clone https://github.com/Alienmaster/BA-Programs
+cd BA-Programs/
 
 # create the virtual environment and install the dependencies
 virtualenv -p /usr/bin/python3.8 bbbsub_env
@@ -167,9 +171,6 @@ save and restart freeswitch:
 ```Shell
 sudo service freeswitch restart
 ```
-
-# Problems / Questions / Suggestions?
-Feel free to write an issue, pull-request or a mail :)
 
 ## Citation
 
